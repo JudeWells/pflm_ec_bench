@@ -1,0 +1,15 @@
+name: pflm_ec_bench
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python=3.12
+  - biopython
+  - pandas
+  - numpy
+  - pyyaml
+  - requests
+  - matplotlib
+  - scikit-learn
+  - pytest
+  - mmseqs2
