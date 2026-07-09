@@ -16,6 +16,14 @@ candidates:
   min_pairs_per_instance: 2
   sim_bins: [20, 30, 40, 50, 60, 70, 80, 90, 100]
   max_per_bin: 50
+  # When true, each positive is paired with the closest decoy whose max identity
+  # to the conditioning set is *strictly greater* than the positive's, instead of
+  # the absolute-closest in the same bin. This removes the residual bias where
+  # positives are slightly more similar than their matched negatives, ensuring a
+  # pure-homology baseline scores at or below chance. max_pair_gap caps the
+  # negative-minus-positive identity gap (percentage points) to keep pairs close.
+  negative_higher: true
+  max_pair_gap: 5.0
 
 false_negative_protection:
   exclude_pident_threshold: 0.7

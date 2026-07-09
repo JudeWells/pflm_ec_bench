@@ -112,6 +112,11 @@ def main():
     parser = argparse.ArgumentParser(description="Construct benchmark instances")
     parser.add_argument("--config", default="config.yaml")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--output-subdir", default="benchmark",
+        help="Subdirectory under the data dir to write instances/manifest into "
+             "(e.g. 'benchmark_v2' to build a new version without overwriting).",
+    )
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -124,7 +129,15 @@ def main():
     max_pairs = config["candidates"]["max_pairs_per_instance"]
     min_pairs = config["candidates"]["min_pairs_per_instance"]
     max_per_bin = config["candidates"]["max_per_bin"]
+    prefer_higher = config["candidates"].get("negative_higher", False)
+    max_pair_gap = config["candidates"].get("max_pair_gap", None)
     fn_threshold = config["false_negative_protection"]["exclude_pident_threshold"]
+
+    if prefer_higher:
+        print(f"  Matching mode: negative slightly HIGHER than positive "
+              f"(max_pair_gap={max_pair_gap})")
+    else:
+        print("  Matching mode: closest identity within same bin")
 
     # Load data
     print("Loading data...")
@@ -171,7 +184,8 @@ def main():
         promiscuous_map = promiscuous
 
     # Process each family
-    benchmark_dir = data_dir / "benchmark" / "instances"
+    output_root = data_dir / args.output_subdir
+    benchmark_dir = output_root / "instances"
     manifest_entries = []
     skipped = {"too_few_positives": 0, "too_few_pairs": 0, "no_decoys": 0}
 
@@ -263,6 +277,8 @@ def main():
             decoy_pool_with_sim,
             bin_edges,
             exclude_ids=false_neg_ids,
+            prefer_higher=prefer_higher,
+            max_gap=max_pair_gap,
         )
 
         if len(pairs) < min_pairs:
@@ -334,7 +350,7 @@ def main():
         "total_pairs": sum(e["n_pairs"] for e in manifest_entries),
         "skipped": skipped,
     }
-    write_json(manifest, data_dir / "benchmark" / "manifest.json")
+    write_json(manifest, output_root / "manifest.json")
 
     print(f"\n=== Summary ===")
     print(f"Benchmark instances created: {len(manifest_entries)}")

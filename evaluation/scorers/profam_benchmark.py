@@ -12,7 +12,6 @@ from Bio import SeqIO
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 from profam import ProFam
 
-_MODEL = None
 
 
 def _parse_seq_id(raw_id: str) -> str:
@@ -50,31 +49,6 @@ def _build_prompt(conditioning_seqs: Sequence[str], max_residues: int) -> List[s
     return prompt
 
 
-def _get_model():
-    """Lazily construct the model once for the whole run."""
-    global _MODEL
-    if _MODEL is None:
-        # This file is named profam.py, so direct imports can resolve to this file.
-        # Temporarily remove this directory from import resolution to load the package.
-        this_dir = Path(__file__).resolve().parent
-        original_sys_path = list(sys.path)
-        try:
-            sys.path = [
-                p for p in sys.path
-                if Path(p or ".").resolve() != this_dir
-            ]
-            profam_pkg = importlib.import_module("profam")
-        finally:
-            sys.path = original_sys_path
-
-        if not hasattr(profam_pkg, "ProFam"):
-            raise ImportError(
-                "Imported `profam` package but it does not expose `ProFam`."
-            )
-
-        _MODEL = profam_pkg.ProFam()
-    return _MODEL
-
 
 def score(
     model,
@@ -99,9 +73,7 @@ def score(
     candidate_ids = [sid for sid, _ in cand_pairs]
     candidate_seqs = [seq for _, seq in cand_pairs]
 
-    # model = _get_model()
-    model = ProFam()
-    result = model.score(model, sequences=candidate_seqs, prompt=prompt, use_diversity_weights=False, ensemble_size=1)
+    result = model.score(sequences=candidate_seqs, prompt=prompt, use_diversity_weights=False, ensemble_size=1)
     score_values = result.scores
     return dict(zip(candidate_ids, score_values)), len(prompt), prompt_residues
 
@@ -299,7 +271,9 @@ def main():
     for idx, instance_dir in enumerate(selected_dirs, start=1):
         family_id = instance_dir.name
         print(f"  [{idx}/{len(selected_dirs)}] {family_id}")
+        model = ProFam()
         scores, prompt_n, prompt_res = score(
+            model,
             conditioning_fasta=instance_dir / "conditioning.fasta",
             candidates_fasta=instance_dir / "candidates.fasta",
             max_prompt_residues=args.max_prompt_residues,

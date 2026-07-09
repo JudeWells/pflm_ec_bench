@@ -59,13 +59,18 @@ def nearest_neighbor_baseline(labels):
 def main():
     parser = argparse.ArgumentParser(description="Validate benchmark")
     parser.add_argument("--config", default="config.yaml")
+    parser.add_argument(
+        "--output-subdir", default="benchmark",
+        help="Subdirectory under the data dir holding instances/manifest "
+             "(e.g. 'benchmark_v2').",
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
 
     data_dir = Path(config["data"]["output_dir"])
-    benchmark_dir = data_dir / "benchmark"
+    benchmark_dir = data_dir / args.output_subdir
     manifest = read_json(benchmark_dir / "manifest.json")
 
     print(f"Validating {manifest['n_instances']} benchmark instances...\n")

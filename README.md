@@ -59,6 +59,14 @@ The key innovation of this benchmark. For each positive candidate *p*, we:
 
 Up to 50 positives are sampled per bin, and each is matched to exactly one negative, producing balanced pairs. Instances with fewer than 2 viable pairs are discarded.
 
+#### "Negative slightly higher" mode (recommended)
+
+With pure closest-in-bin matching, the available decoys within a bin tend to cluster toward its lower edge (out-of-family sequences are, by construction, less similar to the conditioning set), so the matched negative is on average *slightly less* similar than the positive — a residual bias that mildly **inflates** the apparent performance of any model that scores by raw homology.
+
+Set `candidates.negative_higher: true` (the default in `config.yaml`) to remove this. Instead of the absolute-closest decoy in the same bin, each positive is paired with the closest decoy whose maximum identity is **strictly greater** than the positive's, drawn from the full decoy pool (harder tiers still preferred). `candidates.max_pair_gap` (percentage points) caps the negative-minus-positive gap to keep pairs close. This guarantees that in **every** pair the negative is marginally *more* similar to the conditioning set, so a pure-homology model scores **at or below chance** — any model beating it is genuinely using function, not similarity.
+
+The trade-off: the single most-similar in-family member of each family has no more-similar out-of-family decoy, so a few small families fall below the 2-pair minimum and are dropped. On the reference data this yields 157 instances / 3,477 pairs (vs. 201 / 4,810 for closest-in-bin), with a median negative-minus-positive gap of 0.4 pp (76% of pairs within 2 pp) and a nearest-neighbour baseline AUROC of ~0.32. Lowering `max_pair_gap` tightens pairs further at the cost of retaining fewer.
+
 ### Decoy tier system
 
 Negatives are drawn from a hierarchy of EC distance to the target family, preferring harder (more biologically confusable) decoys:
@@ -227,7 +235,7 @@ This reports:
 1. **No leakage**: No candidate sequence appears in any conditioning set.
 2. **Similarity matching**: For each pair, positive and negative have `max_pident` in the same bin. Reports the mean absolute difference.
 3. **Label balance**: Equal positives and negatives per instance.
-4. **Nearest-neighbour baseline**: Uses `max_pident_to_conditioning` as the score. If this achieves AUROC > 0.9, similarity matching has failed for that instance. A well-constructed benchmark should yield baseline AUROC near 0.5.
+4. **Nearest-neighbour baseline**: Uses `max_pident_to_conditioning` as the score. If this achieves AUROC > 0.9, similarity matching has failed for that instance. With closest-in-bin matching a well-constructed benchmark yields baseline AUROC near 0.5; with `negative_higher` mode (default) it sits *below* 0.5 (~0.32 on the reference data), because negatives are deliberately made marginally more similar than positives.
 
 ## Configuration reference
 
@@ -244,6 +252,8 @@ All parameters are in `config.yaml`:
 | | `min_pairs_per_instance` | 2 | Min pairs required to keep an instance |
 | | `sim_bins` | [20,30,...,100] | Similarity bin edges (percent identity) |
 | | `max_per_bin` | 50 | Max positives sampled per bin |
+| | `negative_higher` | true | Pair each positive with the closest decoy of *strictly greater* identity (removes pro-homology bias) |
+| | `max_pair_gap` | 10.0 | Max negative−positive identity gap (pp) when `negative_higher` is on |
 | `false_negative_protection` | `exclude_pident_threshold` | 0.7 | Exclude decoys above this identity to target family |
 | | `exclude_promiscuous` | true | Exclude decoys annotated with target EC |
 | | `family_overlap_pident` | 0.9 | Flag families with cross-identity above this |
