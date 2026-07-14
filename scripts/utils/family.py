@@ -1,6 +1,18 @@
 """EC family selection and conditioning set construction."""
 import random
+import re
 from collections import defaultdict
+
+# Preliminary EC numbers look like `3.6.5.n1`, so a `!= "n"` test lets them
+# through. 1,305 Swiss-Prot entries carry one.
+_PRELIM = re.compile(r"^n\d*$")
+
+
+def is_complete_ec4(ec):
+    """True for a fully specified, non-preliminary EC4 number."""
+    parts = ec.split(".")
+    return (len(parts) == 4
+            and all(p and p != "-" and not _PRELIM.match(p) for p in parts))
 
 
 def parse_ec_annotations(metadata_rows):
@@ -22,9 +34,8 @@ def parse_ec_annotations(metadata_rows):
         # EC field may contain multiple EC numbers separated by '; '
         ecs = [e.strip() for e in ec_field.split(";") if e.strip()]
         for ec in ecs:
-            # Only keep fully specified EC4 numbers (no wildcards)
-            parts = ec.split(".")
-            if len(parts) == 4 and all(p != "-" and p != "n" for p in parts):
+            # Only keep fully specified, non-preliminary EC4 numbers
+            if is_complete_ec4(ec):
                 seq_to_ecs[acc].add(ec)
                 ec_to_seqs[ec].add(acc)
 
