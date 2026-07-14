@@ -26,7 +26,7 @@ S(c) = max { pident(q, c) : q ∈ conditioning set, qcov ≥ 0.6, tcov ≥ 0.6 }
 
 Candidates are **exactly** the sequences with at least one qualifying alignment. A sequence whose only similarity to the prompt is a 70-residue fragment was never retrieved: it is not a hard negative, it is a non-result, and it is not a candidate.
 
-This is the load-bearing idea, and it is what earlier versions got wrong. v1/v2 tried to *balance* such sequences against the positives; v4 removes them from the pool by construction. Balancing cannot work — see [§1](#1-matching-local-identity-controls-the-wrong-variable).
+This is the main idea, and it is what earlier versions got wrong. v1/v2 tried to *balance* such sequences against the positives; v4 removes them from the pool by construction. Balancing cannot work — see [§1](#1-matching-local-identity-controls-the-wrong-variable).
 
 ### Matching
 
